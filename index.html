@@ -64,20 +64,26 @@ function projectedRect(obj){
  return {left:Math.min(...corners.map(v=>v.x)),right:Math.max(...corners.map(v=>v.x)),top:Math.max(...corners.map(v=>v.y)),bottom:Math.min(...corners.map(v=>v.y))};
 }
 function collisionClearance(){
+ // 관통 방지 우선: 화면에 투영된 지게차 전체와 작업자 몸통 영역의
+ // 첫 겹침을 접촉으로 판정한다. 조기 정지 가능성은 있지만 관통을 허용하지 않는다.
  const f=projectedRect(objs.machine),w=projectedRect(objs.actor);
  if(!f||!w)return {hit:false};
- // 작업자 중심 몸통(머리·다리 제외)과 지게차 차체의 화면상 후면 접촉점.
- // GLB 자체의 정확한 충돌 메시가 없는 경우를 위한 보수적인 2D 근사치.
- const wx=(w.left+w.right)/2,wy=w.top-(w.top-w.bottom)*.52;
- const fx=(f.left+f.right)/2,fy=f.bottom+(f.top-f.bottom)*.27;
- const toleranceX=Math.max((w.right-w.left)*.48,.04);
- return {hit:Math.abs(fx-wx)<=toleranceX && fy<=wy,fx,fy,wx,wy};
+ const ww=w.right-w.left,hh=w.top-w.bottom;
+ // 작업자 중심 65% 너비, 어깨부터 발목까지의 영역
+ const body={left:w.left+ww*.175,right:w.right-ww*.175,
+             bottom:w.bottom+hh*.10,top:w.top-hh*.12};
+ const hit=f.left<=body.right && f.right>=body.left &&
+           f.bottom<=body.top && f.top>=body.bottom;
+ return {hit,f,body};
 }
 function moveForkliftSafely(targetT){
  if(!objs.machine||!objs.actor)return false;
  // 큰 프레임 간격에도 충돌 프레임을 건너뛰지 않도록 구간을 세분 검사.
  const from=forkliftPreviousT,to=Math.min(1,targetT),count=Math.max(1,Math.ceil((to-from)/.002));
  let previous=from;
+ // 시작부터 겹쳐 있으면 더 움직여 관통시키지 않는다.
+ forkliftPose(from);
+ if(collisionClearance().hit){forkliftPreviousT=from;return true;}
  for(let i=1;i<=count;i++){
   const candidate=from+(to-from)*i/count;
   forkliftPose(candidate);
