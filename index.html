@@ -22,7 +22,7 @@ function place(group,loc){const w=cam.right-cam.left,h=cam.top-cam.bottom;group.
 function normalized(model){const box=new THREE.Box3().setFromObject(model),sz=new THREE.Vector3(),mid=new THREE.Vector3();box.getSize(sz);box.getCenter(mid);const g=new THREE.Group();g.add(model);const factor=1/Math.max(sz.x,sz.y,sz.z,.001);model.scale.multiplyScalar(factor);model.position.copy(mid).multiplyScalar(-factor);return g}
 function loadModel(name){if(!cache.has(name))cache.set(name,new Promise((resolve,reject)=>loader.load(asset+name,g=>resolve(g.scene),undefined,reject)));return cache.get(name).then(g=>g.clone(true))}
 function fallbackWorker(){const g=new THREE.Group();const m=c=>new THREE.MeshStandardMaterial({color:c});const p=(x,y,z,w,h,d,c)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m(c));o.position.set(x,y,z);g.add(o)};p(0,.1,0,.3,.45,.2,0xff8425);p(0,.42,0,.22,.24,.2,0xe8c7a7);p(0,.6,0,.32,.12,.3,0xe9edf1);for(const s of [-1,1]){p(s*.24,.05,0,.12,.42,.14,0x235d87);p(s*.1,-.38,0,.13,.45,.14,0x8d806f)}return g}
-function dropObjects(){token++;for(const g of Object.values(objs))scene.remove(g);objs={};baseline={};offsets={actor:[0,0,1,0],machine:[0,0,1,0],chuck:[0,0,1,0]};state='idle';time=0;impactPlayed=false;forkliftSafeT=0;stage.classList.remove('shake');$('flash').style.opacity=0;$('veil').style.opacity=0;if('speechSynthesis'in window)speechSynthesis.cancel()}
+function dropObjects(){token++;for(const g of Object.values(objs))scene.remove(g);objs={};baseline={};offsets={actor:[0,0,1,0],machine:[0,0,1,0],chuck:[0,0,1,0]};state='idle';time=0;impactPlayed=false;forkliftSafeT=0;forkliftPreviousT=0;stage.classList.remove('shake');$('flash').style.opacity=0;$('veil').style.opacity=0;if('speechSynthesis'in window)speechSynthesis.cancel()}
 function attach(key,model,loc){const g=normalized(model);scene.add(g);objs[key]=g;baseline[key]=loc.slice();place(g,loc);if(index===2&&key==='machine')g.position.z=-1;apply();return g}
 async function select(i){dropObjects();index=i;const t=token,d=defs[i];$('photo').src=bg+d.file;$('title').textContent=d.title;$('loading').textContent='GLB 로딩 중';step('사고 전 현장');msg('모델을 불러오고 있습니다.');$('choices').innerHTML='';d.question.forEach((q,k)=>{const b=document.createElement('button');b.textContent=(k?'안전 행동: ':'위험 행동: ')+q;b.onclick=()=>{if(k){halt();msg('올바른 선택입니다. '+d.rule);speak(d.rule)}else{msg('위험한 행동입니다. 사고 시뮬레이션을 실행해 보세요.');start()}};$('choices').append(b)});[...$('menu').children].forEach((b,j)=>b.classList.toggle('active',i===j));$('object').value='actor';syncSliders();const jobs=[loadModel('construction_worker.glb').then(m=>{if(token===t)attach('actor',m,d.actor)}).catch(e=>{console.error(e);if(token===t){attach('actor',fallbackWorker(),d.actor);msg('작업자 GLB 로딩 실패: '+e.message)}})];
  const files={lathe:'lathe.glb',forklift:'forklift.glb',electric:'electrical-box.glb',tank:'storage-tanks.glb'};if(files[d.type])jobs.push(loadModel(files[d.type]).then(m=>{if(token===t)attach('machine',m,d.machine)}).catch(e=>{console.error(e);if(token===t)msg('설비 GLB 로딩 실패: '+e.message)}));if(d.type==='lathe')jobs.push(loadModel('lathe_chuck.glb').then(m=>{if(token===t)attach('chuck',m,d.chuck)}).catch(e=>{console.error(e);if(token===t)msg('선반 척 GLB 로딩 실패: '+e.message)}));await Promise.allSettled(jobs);if(token===t){const needed=['actor',...(d.machine?['machine']:[]),...(d.chuck?['chuck']:[])];const missing=needed.filter(k=>!objs[k]);$('loading').textContent=missing.length?'일부 모델 누락: '+missing.join(', '):'GLB 준비 완료';if(!missing.length)msg('모델 준비 완료. 작업자를 선택하고 슬라이더를 움직여 보세요. 사고 재현 중에는 조정 시 재현이 정지됩니다.');syncSliders()}}
@@ -30,7 +30,7 @@ function syncSliders(){const v=offsets[$('object').value]||[0,0,1,0];$('x').valu
 function showValues(){for(const id of ['x','y','size','rot']){const el=$(id),out=$('val_'+id);if(out)out.textContent=(id==='size'?el.value+'%':el.value+(id==='rot'?'°':''))}}
 function apply(){for(const [key,g]of Object.entries(objs)){const b=baseline[key],v=offsets[key];if(!b||!v)continue;place(g,[b[0]+v[0],b[1]+v[1],b[2]*v[2],b[3]+v[3]]);if(index===2&&key==='machine')g.position.z=-1}}
 function halt(){state='idle';time=0;stage.classList.remove('shake');$('flash').style.opacity=0;$('veil').style.opacity=0;for(const g of Object.values(objs))g.visible=true;apply()}
-function start(){if(state==='done'){select(index);return}if(state!=='idle')return;if(!objs.actor){msg('작업자 GLB가 로딩되지 않았습니다. 잠시 기다리거나 모델 경로를 확인하세요.');return}state='run';time=0;impactPlayed=false;forkliftSafeT=0;msg('사고 위험 상황이 진행됩니다.');step('위험 상황 진행 중');speak(defs[index].title+' 사고 위험 상황입니다.');tone(370,.2,.18)}
+function start(){if(state==='done'){select(index);return}if(state!=='idle')return;if(!objs.actor){msg('작업자 GLB가 로딩되지 않았습니다. 잠시 기다리거나 모델 경로를 확인하세요.');return}state='run';time=0;impactPlayed=false;forkliftSafeT=0;forkliftPreviousT=0;msg('사고 위험 상황이 진행됩니다.');step('위험 상황 진행 중');speak(defs[index].title+' 사고 위험 상황입니다.');tone(370,.2,.18)}
 function collisionSound(){
  if(!$('sound').checked)return;
  try{const c=audio(),duration=.8,buffer=c.createBuffer(1,Math.ceil(c.sampleRate*duration),c.sampleRate),samples=buffer.getChannelData(0);
@@ -47,57 +47,56 @@ function moveFallActor(t){const a=objs.actor,d=defs[0];if(!a)return;const start=
 function fallIntoHole(t){const a=objs.actor,d=defs[0];if(!a)return;const b=baseline.actor;const ease=t*t;interpolate(a,[d.hole[0],d.hole[1],b[2],b[3]],[d.hole[0],d.hole[1]+8,b[2]*.06,b[3]],ease,'actor');a.visible=t<.96}
 
 
-// 지게차 후진: 원근감이 드러나도록 GLB 자체 배율을 확대한다.
-// 실제 GLB의 투영 외곽선이 작업자와 처음 접촉하는 프레임에서 멈춘다.
+// 지게차 충돌: 화면상의 차체와 작업자 몸통이 접촉하는 첫 프레임에서 정지.
+// GLB의 전체 외곽(포크·마스트 포함)으로 조기 충돌 판정하지 않는다.
 const forkliftEnd=[43,88,10.2,265];
+let forkliftPreviousT=0;
 function forkliftPose(t){
  const b=baseline.machine;
- // 후진 거리 증가에 따라 화면에서 크기가 확실히 커지는 비선형 보간
- const scaleT=Math.pow(t,1.12);
- interpolate(objs.machine,b,[forkliftEnd[0],forkliftEnd[1],forkliftEnd[2],b[3]],scaleT,'machine');
+ interpolate(objs.machine,b,[forkliftEnd[0],forkliftEnd[1],forkliftEnd[2],b[3]],Math.pow(t,1.12),'machine');
 }
 function projectedRect(obj){
  obj.updateWorldMatrix(true,true);
  const b=new THREE.Box3().setFromObject(obj);
  if(b.isEmpty())return null;
  const corners=[];
- for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z]){
-  const v=new THREE.Vector3(x,y,z).project(cam);
-  corners.push(v);
- }
+ for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])corners.push(new THREE.Vector3(x,y,z).project(cam));
  return {left:Math.min(...corners.map(v=>v.x)),right:Math.max(...corners.map(v=>v.x)),top:Math.max(...corners.map(v=>v.y)),bottom:Math.min(...corners.map(v=>v.y))};
 }
-function touchesWorker(){
- if(!objs.machine||!objs.actor)return false;
+function collisionClearance(){
  const f=projectedRect(objs.machine),w=projectedRect(objs.actor);
- if(!f||!w)return false;
- // 화면 전체 외곽선이 아닌, 지게차의 후면 하단과 작업자 몸통으로 접촉 판정.
- // 정규화 투영 좌표: 위쪽이 +1, 아래쪽이 -1.
- const workerCenterX=(w.left+w.right)/2;
- const workerTorsoY=w.top-(w.top-w.bottom)*0.55;
- const forkliftRearY=f.bottom+(f.top-f.bottom)*0.12;
- const forkliftCenterX=(f.left+f.right)/2;
- const horizontalTolerance=Math.max((w.right-w.left)*0.42,0.035);
- return Math.abs(forkliftCenterX-workerCenterX)<=horizontalTolerance && forkliftRearY<=workerTorsoY;
+ if(!f||!w)return {hit:false};
+ // 작업자 중심 몸통(머리·다리 제외)과 지게차 차체의 화면상 후면 접촉점.
+ // GLB 자체의 정확한 충돌 메시가 없는 경우를 위한 보수적인 2D 근사치.
+ const wx=(w.left+w.right)/2,wy=w.top-(w.top-w.bottom)*.52;
+ const fx=(f.left+f.right)/2,fy=f.bottom+(f.top-f.bottom)*.27;
+ const toleranceX=Math.max((w.right-w.left)*.48,.04);
+ return {hit:Math.abs(fx-wx)<=toleranceX && fy<=wy,fx,fy,wx,wy};
 }
 function moveForkliftSafely(targetT){
  if(!objs.machine||!objs.actor)return false;
- // 사용자 조정으로 처음부터 겹친 경우, 즉시 사고로 판정
- forkliftPose(targetT);
- if(!touchesWorker()){forkliftSafeT=targetT;return false;}
- let lo=forkliftSafeT,hi=targetT;
- for(let i=0;i<15;i++){
-  const mid=(lo+hi)/2;
-  forkliftPose(mid);
-  if(touchesWorker())hi=mid;else lo=mid;
+ // 큰 프레임 간격에도 충돌 프레임을 건너뛰지 않도록 구간을 세분 검사.
+ const from=forkliftPreviousT,to=Math.min(1,targetT),count=Math.max(1,Math.ceil((to-from)/.002));
+ let previous=from;
+ for(let i=1;i<=count;i++){
+  const candidate=from+(to-from)*i/count;
+  forkliftPose(candidate);
+  if(collisionClearance().hit){
+   let low=previous,high=candidate;
+   for(let j=0;j<20;j++){
+    const mid=(low+high)/2;forkliftPose(mid);
+    if(collisionClearance().hit)high=mid;else low=mid;
+   }
+   forkliftPreviousT=low;
+   forkliftPose(low); // 최초 접촉 직전 위치에서 고정: 이후 관통 없음
+   return true;
+  }
+  previous=candidate;
  }
- // 실제 충돌 프레임보다 0.1% 앞에 멈춰 관통을 방지
- forkliftSafeT=Math.max(0,lo-0.001);
- forkliftPose(forkliftSafeT);
- return true;
+ forkliftPreviousT=to;forkliftPose(to);
+ return false;
 }
-
-function animation(now){requestAnimationFrame(animation);const dt=Math.min(.06,(now-last)/1000);last=now;const d=defs[index],a=objs.actor,m=objs.machine,c=objs.chuck;if(state==='run'){time+=dt;const t=Math.min(time/(index===2?6:4),1);if(index===0){moveFallActor(t)}if(index===1){interpolate(a,baseline.actor,[49,70,4.0,180],t,'actor');if(c)c.rotation.z+=dt*12}if(index===2){if(m&&moveForkliftSafely(t)){impact();}}if(index===3){interpolate(a,baseline.actor,[29,75,4.0,180],t,'actor')}if(index===4){interpolate(a,baseline.actor,[54,58,4.0,180],t,'actor')}if(time>=4&&state==='run'&&index!==2)impact();if(index===2&&time>=6&&state==='run'){state='idle';msg('지게차가 작업자에게 닿지 않았습니다. 설비 위치를 조정한 뒤 다시 실행하세요.');step('충돌 미발생 — 배치 확인 필요');}}
+function animation(now){requestAnimationFrame(animation);const dt=Math.min(.06,(now-last)/1000);last=now;const d=defs[index],a=objs.actor,m=objs.machine,c=objs.chuck;if(state==='run'){time+=dt;const t=Math.min(time/(index===2?6:4),1);if(index===0){moveFallActor(t)}if(index===1){interpolate(a,baseline.actor,[49,70,4.0,180],t,'actor');if(c)c.rotation.z+=dt*12}if(index===2){if(m&&moveForkliftSafely(t)){impact();}}if(index===3){interpolate(a,baseline.actor,[29,75,4.0,180],t,'actor')}if(index===4){interpolate(a,baseline.actor,[54,58,4.0,180],t,'actor')}if(time>=4&&state==='run'&&index!==2)impact();if(index===2&&time>=6&&state==='run'){state='idle';msg('지게차가 작업자와 접촉하지 않아 사고를 발생시키지 않았습니다. 현재 배치를 확인해 주세요.');step('접촉 미발생 — 사고 효과 실행 안 함');}}
 else if(state==='impact'){time+=dt;const t=Math.min(time/1.9,1);if(index===0&&a){fallIntoHole(t)}if(index===1&&a){interpolate(a,[49,70,4.0,180],[44,70,4.0,215],Math.min(t,1),'actor');if(c)c.rotation.z+=dt*15}if(index===2&&m){/* 충돌 시점의 크기와 위치 고정, 작업자 관통 금지 */if(a&&t>.05){a.rotation.z=-Math.min((t-.05)*.24,.18)}}if(index===3){$('flash').style.opacity=(1-t)*.9;if(a)a.rotation.z=Math.sin(t*20)*.12}if(index===4){$('veil').style.opacity=t*.9;if(a)interpolate(a,[54,58,4.0,180],[54,62,3.6,180],t,'actor')}if(time>1.9){state='done';stage.classList.remove('shake');$('flash').style.opacity=0;step('사고 원인과 예방조치를 확인하세요')}}
 renderer.render(scene,cam)}
 function resize(){const r=stage.getBoundingClientRect(),aspect=r.width/r.height;renderer.setSize(r.width,r.height,false);cam.top=4.5;cam.bottom=-4.5;cam.left=-4.5*aspect;cam.right=4.5*aspect;cam.updateProjectionMatrix();apply()}
