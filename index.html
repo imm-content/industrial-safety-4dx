@@ -1,6 +1,6 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>산업안전사고 가상체험 4DX v1.2</title><style>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>산업안전사고 가상체험 4DX v1.5</title><style>
 *{box-sizing:border-box}body{margin:0;background:#081522;color:#f1f7fc;font-family:'Malgun Gothic',system-ui,sans-serif}header{padding:12px 2vw;background:#10283c;border-bottom:1px solid #355169}h1{font-size:clamp(20px,2.2vw,28px);margin:0}header small{color:#b5d0e3}.wrap{padding:10px 1.5vw;display:grid;grid-template-columns:225px minmax(0,1fr);gap:10px}.side,.main{background:#11293d;border:1px solid #36546b;border-radius:10px;padding:10px}.side h2{font-size:15px;margin:4px 0 10px}.menu{display:grid;gap:7px}.menu button,.control button,.tools button{border:1px solid #53748b;background:#1a405b;color:white;border-radius:7px;padding:9px;cursor:pointer;font:inherit}.menu button{text-align:left}.menu button.active{background:#167ca9}.tools{display:grid;gap:8px;margin-top:12px}.tools label{font-size:13px;display:grid;gap:3px}.tools input[type=range]{width:100%;accent-color:#35a9eb}.tools select{background:#173e5a;color:#fff;padding:7px;border:1px solid #52738c;border-radius:6px}.stage{width:100%;height:min(78vh,900px);min-height:480px;position:relative;overflow:hidden;background:#030c13;border-radius:8px;isolation:isolate}.stage img,.stage canvas{position:absolute;inset:0;width:100%;height:100%}.stage img{object-fit:fill}.stage canvas{touch-action:none}.hud{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}.hud span,.bottom{background:#061b2bdc;border:1px solid #ffffff44;padding:7px 10px;border-radius:7px;font-size:12px}.bottom{position:absolute;bottom:10px;left:12px;max-width:85%;pointer-events:none}.flash,.veil{position:absolute;inset:0;pointer-events:none;opacity:0}.flash{background:#fff3ad}.veil{background:#07111a}.stage.shake{animation:shake .055s alternate infinite}@keyframes shake{from{transform:translate(-5px,3px)}to{transform:translate(5px,-3px)}}.control{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.control button{background:#147bab;font-weight:700}.control button.alt{background:#35526a}.control button.stop{background:#b63e30}.status{padding:11px;background:#092236;color:#ffe2a7;border-radius:7px;min-height:42px;margin-top:9px;font-size:14px;line-height:1.6}.choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.choices button{padding:11px;border-radius:7px;border:1px solid #487d9c;background:#17425e;color:white;cursor:pointer;text-align:left}.note{color:#b9d0e0;font-size:12px;line-height:1.6}.stage:fullscreen{height:100vh;width:100vw;border-radius:0}.stage:fullscreen img{object-fit:fill}@media(max-width:850px){.wrap{grid-template-columns:1fr}.stage{height:66vh;min-height:320px}.menu{grid-template-columns:repeat(3,1fr)}.tools{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.menu{grid-template-columns:repeat(2,1fr)}.choices{grid-template-columns:1fr}}
-</style></head><body><header><h1>산업안전사고 가상체험 4DX</h1><small>v1.2 · 현장 배경 + 실제 GLB 6종 · 객체별 위치/크기/회전 · 사고 위험 연출</small></header><div class="wrap"><aside class="side"><h2>① 체험 현장 선택</h2><nav class="menu" id="menu"></nav><div class="tools"><h2>② GLB 개별 조정</h2><label>조정 대상<select id="object"><option value="actor">작업자</option><option value="machine">설비 / 차량</option><option value="chuck">선반 척</option></select></label><label>좌우 <input id="x" type="range" min="-50" max="50" value="0"> <output id="val_x" style="color:#ffe3a0;font-weight:bold"></output></label><label>상하 <input id="y" type="range" min="-40" max="40" value="0"> <output id="val_y" style="color:#ffe3a0;font-weight:bold"></output></label><label>크기 <input id="size" type="range" min="10" max="300" value="100"> <output id="val_size" style="color:#ffe3a0;font-weight:bold"></output></label><label>회전 <input id="rot" type="range" min="-180" max="180" value="0"> <output id="val_rot" style="color:#ffe3a0;font-weight:bold"></output></label><button id="resetObject">선택 객체 조정 초기화</button><button id="save">배치값 복사</button><label><span>음성 안내 <input type="checkbox" id="voice" checked></span></label><label><span>효과음 <input type="checkbox" id="sound" checked></span></label></div><p class="note">조정은 선택한 GLB에만 적용됩니다. 바퀴·팔·다리의 개별 동작은 모델 구조상 제한됩니다.</p></aside><main class="main"><div class="stage" id="stage"><img id="photo" alt="산업현장 배경"><canvas id="canvas"></canvas><div class="flash" id="flash"></div><div class="veil" id="veil"></div><div class="hud"><span id="title">현장 선택</span><span id="loading">준비 중</span></div><div class="bottom" id="step">위험요인을 확인하세요</div></div><div class="control"><button id="start">▶ 사고 시뮬레이션</button><button id="reset" class="alt">↺ 장면 초기화</button><button id="safety" class="alt">✓ 예방조치</button><button id="stop" class="stop">■ 긴급 정지</button><button id="full" class="alt">⛶ 전체화면</button></div><div class="choices" id="choices"></div><div class="status" id="status">현장을 선택하세요.</div><p class="note">※ 사진은 2D 배경입니다. 추락·끼임·충돌은 GLB와 화면 효과를 조합한 시뮬레이션이며 실제 물리 충돌·사람의 관절 애니메이션이 아닙니다. 사고 예방 교육을 위한 연출입니다.</p></main></div>
+</style></head><body><header><h1>산업안전사고 가상체험 4DX</h1><small>v1.5 · 현장 배경 + 실제 GLB 6종 · 객체별 위치/크기/회전 · 사고 위험 연출</small></header><div class="wrap"><aside class="side"><h2>① 체험 현장 선택</h2><nav class="menu" id="menu"></nav><div class="tools"><h2>② GLB 개별 조정</h2><label>조정 대상<select id="object"><option value="actor">작업자</option><option value="machine">설비 / 차량</option><option value="chuck">선반 척</option></select></label><label>좌우 <input id="x" type="range" min="-50" max="50" value="0"> <output id="val_x" style="color:#ffe3a0;font-weight:bold"></output></label><label>상하 <input id="y" type="range" min="-40" max="40" value="0"> <output id="val_y" style="color:#ffe3a0;font-weight:bold"></output></label><label>크기 <input id="size" type="range" min="10" max="300" value="100"> <output id="val_size" style="color:#ffe3a0;font-weight:bold"></output></label><label>회전 <input id="rot" type="range" min="-180" max="180" value="0"> <output id="val_rot" style="color:#ffe3a0;font-weight:bold"></output></label><button id="resetObject">선택 객체 조정 초기화</button><button id="save">배치값 복사</button><label><span>음성 안내 <input type="checkbox" id="voice" checked></span></label><label><span>효과음 <input type="checkbox" id="sound" checked></span></label></div><p class="note">조정은 선택한 GLB에만 적용됩니다. 바퀴·팔·다리의 개별 동작은 모델 구조상 제한됩니다.</p></aside><main class="main"><div class="stage" id="stage"><img id="photo" alt="산업현장 배경"><canvas id="canvas"></canvas><div class="flash" id="flash"></div><div class="veil" id="veil"></div><div class="hud"><span id="title">현장 선택</span><span id="loading">준비 중</span></div><div class="bottom" id="step">위험요인을 확인하세요</div></div><div class="control"><button id="start">▶ 사고 시뮬레이션</button><button id="reset" class="alt">↺ 장면 초기화</button><button id="safety" class="alt">✓ 예방조치</button><button id="stop" class="stop">■ 긴급 정지</button><button id="full" class="alt">⛶ 전체화면</button></div><div class="choices" id="choices"></div><div class="status" id="status">현장을 선택하세요.</div><p class="note">※ 사진은 2D 배경입니다. 추락·끼임·충돌은 GLB와 화면 효과를 조합한 시뮬레이션이며 실제 물리 충돌·사람의 관절 애니메이션이 아닙니다. 사고 예방 교육을 위한 연출입니다.</p></main></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script><script type="module">
 import * as THREE from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 const $=id=>document.getElementById(id),loader=new GLTFLoader(),asset='assets/',bg=asset+'backgrounds/';
@@ -22,7 +22,7 @@ function place(group,loc){const w=cam.right-cam.left,h=cam.top-cam.bottom;group.
 function normalized(model){const box=new THREE.Box3().setFromObject(model),sz=new THREE.Vector3(),mid=new THREE.Vector3();box.getSize(sz);box.getCenter(mid);const g=new THREE.Group();g.add(model);const factor=1/Math.max(sz.x,sz.y,sz.z,.001);model.scale.multiplyScalar(factor);model.position.copy(mid).multiplyScalar(-factor);return g}
 function loadModel(name){if(!cache.has(name))cache.set(name,new Promise((resolve,reject)=>loader.load(asset+name,g=>resolve(g.scene),undefined,reject)));return cache.get(name).then(g=>g.clone(true))}
 function fallbackWorker(){const g=new THREE.Group();const m=c=>new THREE.MeshStandardMaterial({color:c});const p=(x,y,z,w,h,d,c)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m(c));o.position.set(x,y,z);g.add(o)};p(0,.1,0,.3,.45,.2,0xff8425);p(0,.42,0,.22,.24,.2,0xe8c7a7);p(0,.6,0,.32,.12,.3,0xe9edf1);for(const s of [-1,1]){p(s*.24,.05,0,.12,.42,.14,0x235d87);p(s*.1,-.38,0,.13,.45,.14,0x8d806f)}return g}
-function dropObjects(){token++;for(const g of Object.values(objs))scene.remove(g);objs={};baseline={};offsets={actor:[0,0,1,0],machine:[0,0,1,0],chuck:[0,0,1,0]};state='idle';time=0;impactPlayed=false;forkliftSafeT=0;forkliftPreviousT=0;stage.classList.remove('shake');$('flash').style.opacity=0;$('veil').style.opacity=0;if('speechSynthesis'in window)speechSynthesis.cancel()}
+function dropObjects(){token++;for(const g of Object.values(objs))scene.remove(g);objs={};baseline={};offsets={actor:[0,0,1,0],machine:[0,0,1,0],chuck:[0,0,1,0]};state='idle';time=0;impactPlayed=false;stage.classList.remove('shake');$('flash').style.opacity=0;$('veil').style.opacity=0;if('speechSynthesis'in window)speechSynthesis.cancel()}
 function attach(key,model,loc){const g=normalized(model);scene.add(g);objs[key]=g;baseline[key]=loc.slice();place(g,loc);if(index===2&&key==='machine')g.position.z=-1;apply();return g}
 async function select(i){dropObjects();index=i;const t=token,d=defs[i];$('photo').src=bg+d.file;$('title').textContent=d.title;$('loading').textContent='GLB 로딩 중';step('사고 전 현장');msg('모델을 불러오고 있습니다.');$('choices').innerHTML='';d.question.forEach((q,k)=>{const b=document.createElement('button');b.textContent=(k?'안전 행동: ':'위험 행동: ')+q;b.onclick=()=>{if(k){halt();msg('올바른 선택입니다. '+d.rule);speak(d.rule)}else{msg('위험한 행동입니다. 사고 시뮬레이션을 실행해 보세요.');start()}};$('choices').append(b)});[...$('menu').children].forEach((b,j)=>b.classList.toggle('active',i===j));$('object').value='actor';syncSliders();const jobs=[loadModel('construction_worker.glb').then(m=>{if(token===t)attach('actor',m,d.actor)}).catch(e=>{console.error(e);if(token===t){attach('actor',fallbackWorker(),d.actor);msg('작업자 GLB 로딩 실패: '+e.message)}})];
  const files={lathe:'lathe.glb',forklift:'forklift.glb',electric:'electrical-box.glb',tank:'storage-tanks.glb'};if(files[d.type])jobs.push(loadModel(files[d.type]).then(m=>{if(token===t)attach('machine',m,d.machine)}).catch(e=>{console.error(e);if(token===t)msg('설비 GLB 로딩 실패: '+e.message)}));if(d.type==='lathe')jobs.push(loadModel('lathe_chuck.glb').then(m=>{if(token===t)attach('chuck',m,d.chuck)}).catch(e=>{console.error(e);if(token===t)msg('선반 척 GLB 로딩 실패: '+e.message)}));await Promise.allSettled(jobs);if(token===t){const needed=['actor',...(d.machine?['machine']:[]),...(d.chuck?['chuck']:[])];const missing=needed.filter(k=>!objs[k]);$('loading').textContent=missing.length?'일부 모델 누락: '+missing.join(', '):'GLB 준비 완료';if(!missing.length)msg('모델 준비 완료. 작업자를 선택하고 슬라이더를 움직여 보세요. 사고 재현 중에는 조정 시 재현이 정지됩니다.');syncSliders()}}
@@ -30,7 +30,7 @@ function syncSliders(){const v=offsets[$('object').value]||[0,0,1,0];$('x').valu
 function showValues(){for(const id of ['x','y','size','rot']){const el=$(id),out=$('val_'+id);if(out)out.textContent=(id==='size'?el.value+'%':el.value+(id==='rot'?'°':''))}}
 function apply(){for(const [key,g]of Object.entries(objs)){const b=baseline[key],v=offsets[key];if(!b||!v)continue;place(g,[b[0]+v[0],b[1]+v[1],b[2]*v[2],b[3]+v[3]]);if(index===2&&key==='machine')g.position.z=-1}}
 function halt(){state='idle';time=0;stage.classList.remove('shake');$('flash').style.opacity=0;$('veil').style.opacity=0;for(const g of Object.values(objs))g.visible=true;apply()}
-function start(){if(state==='done'){select(index);return}if(state!=='idle')return;if(!objs.actor){msg('작업자 GLB가 로딩되지 않았습니다. 잠시 기다리거나 모델 경로를 확인하세요.');return}state='run';time=0;impactPlayed=false;forkliftSafeT=0;forkliftPreviousT=0;msg('사고 위험 상황이 진행됩니다.');step('위험 상황 진행 중');speak(defs[index].title+' 사고 위험 상황입니다.');tone(370,.2,.18)}
+function start(){if(state==='done'){select(index);return}if(state!=='idle')return;if(!objs.actor){msg('작업자 GLB가 로딩되지 않았습니다. 잠시 기다리거나 모델 경로를 확인하세요.');return}state='run';time=0;impactPlayed=false;msg('사고 위험 상황이 진행됩니다.');step('위험 상황 진행 중');speak(defs[index].title+' 사고 위험 상황입니다.');tone(370,.2,.18)}
 function collisionSound(){
  if(!$('sound').checked)return;
  try{const c=audio(),duration=.8,buffer=c.createBuffer(1,Math.ceil(c.sampleRate*duration),c.sampleRate),samples=buffer.getChannelData(0);
@@ -47,62 +47,43 @@ function moveFallActor(t){const a=objs.actor,d=defs[0];if(!a)return;const start=
 function fallIntoHole(t){const a=objs.actor,d=defs[0];if(!a)return;const b=baseline.actor;const ease=t*t;interpolate(a,[d.hole[0],d.hole[1],b[2],b[3]],[d.hole[0],d.hole[1]+8,b[2]*.06,b[3]],ease,'actor');a.visible=t<.96}
 
 
-// 지게차 충돌: 화면상의 차체와 작업자 몸통이 접촉하는 첫 프레임에서 정지.
-// GLB의 전체 외곽(포크·마스트 포함)으로 조기 충돌 판정하지 않는다.
-const forkliftEnd=[43,88,10.2,265];
-let forkliftPreviousT=0;
+// 지게차 후진: 사용자가 화면에 표시한 빨간 가로선까지 이동한 후 충돌 연출.
+// 기준: 첨부 화면의 체험 화면 내부 x=49.5%, y=81.0%.
+// 빨간 선은 사용자가 스크린샷에 그린 참고 표시이며 HTML 화면에 별도 선을 그리지 않는다.
+const forkliftStop={x:49.5,y:81.0,scale:6.1};
 function forkliftPose(t){
- const b=baseline.machine;
- interpolate(objs.machine,b,[forkliftEnd[0],forkliftEnd[1],forkliftEnd[2],b[3]],Math.pow(t,1.12),'machine');
+ const b=baseline.machine,progress=Math.max(0,Math.min(1,t));
+ const ease=progress*progress*(3-2*progress);
+ const v=offsets.machine||[0,0,1,0];
+ const startScale=b[2]*v[2],endScale=forkliftStop.scale*v[2];
+ // 지게차의 하단이 지정된 정지선(y=81%)에 닿는 위치를 실제 GLB 경계로 산출한다.
+ // 초기 배치에서 목표 배치로 부드럽게 보간한다.
+ const g=objs.machine;
+ if(!g)return;
+ const startX=b[0]+v[0],startY=b[1]+v[1];
+ place(g,[forkliftStop.x+v[0],forkliftStop.y+v[1],endScale,b[3]+v[3]]);
+ g.position.z=-1;
+ const rect=projectedRect(g);
+ if(!rect)return;
+ // projectedRect는 NDC 좌표이므로 현재 하단을 화면 백분율로 변환한다.
+ const bottomPercent=(1-rect.bottom)*50;
+ const endCenterY=(forkliftStop.y+v[1])+(forkliftStop.y+v[1]-bottomPercent);
+ const endX=forkliftStop.x+v[0];
+ const x=startX+(endX-startX)*ease;
+ const y=startY+(endCenterY-startY)*ease;
+ const scale=startScale+(endScale-startScale)*ease;
+ place(g,[x,y,scale,b[3]+v[3]]);
+ g.position.z=-1;
 }
 function projectedRect(obj){
  obj.updateWorldMatrix(true,true);
- const b=new THREE.Box3().setFromObject(obj);
- if(b.isEmpty())return null;
- const corners=[];
- for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z])corners.push(new THREE.Vector3(x,y,z).project(cam));
- return {left:Math.min(...corners.map(v=>v.x)),right:Math.max(...corners.map(v=>v.x)),top:Math.max(...corners.map(v=>v.y)),bottom:Math.min(...corners.map(v=>v.y))};
+ const box=new THREE.Box3().setFromObject(obj);
+ if(box.isEmpty())return null;
+ const pts=[];
+ for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z])pts.push(new THREE.Vector3(x,y,z).project(cam));
+ return {left:Math.min(...pts.map(p=>p.x)),right:Math.max(...pts.map(p=>p.x)),top:Math.max(...pts.map(p=>p.y)),bottom:Math.min(...pts.map(p=>p.y))};
 }
-function collisionClearance(){
- // 관통 방지 우선: 화면에 투영된 지게차 전체와 작업자 몸통 영역의
- // 첫 겹침을 접촉으로 판정한다. 조기 정지 가능성은 있지만 관통을 허용하지 않는다.
- const f=projectedRect(objs.machine),w=projectedRect(objs.actor);
- if(!f||!w)return {hit:false};
- const ww=w.right-w.left,hh=w.top-w.bottom;
- // 작업자 중심 65% 너비, 어깨부터 발목까지의 영역
- const body={left:w.left+ww*.175,right:w.right-ww*.175,
-             bottom:w.bottom+hh*.10,top:w.top-hh*.12};
- const hit=f.left<=body.right && f.right>=body.left &&
-           f.bottom<=body.top && f.top>=body.bottom;
- return {hit,f,body};
-}
-function moveForkliftSafely(targetT){
- if(!objs.machine||!objs.actor)return false;
- // 큰 프레임 간격에도 충돌 프레임을 건너뛰지 않도록 구간을 세분 검사.
- const from=forkliftPreviousT,to=Math.min(1,targetT),count=Math.max(1,Math.ceil((to-from)/.002));
- let previous=from;
- // 시작부터 겹쳐 있으면 더 움직여 관통시키지 않는다.
- forkliftPose(from);
- if(collisionClearance().hit){forkliftPreviousT=from;return true;}
- for(let i=1;i<=count;i++){
-  const candidate=from+(to-from)*i/count;
-  forkliftPose(candidate);
-  if(collisionClearance().hit){
-   let low=previous,high=candidate;
-   for(let j=0;j<20;j++){
-    const mid=(low+high)/2;forkliftPose(mid);
-    if(collisionClearance().hit)high=mid;else low=mid;
-   }
-   forkliftPreviousT=low;
-   forkliftPose(low); // 최초 접촉 직전 위치에서 고정: 이후 관통 없음
-   return true;
-  }
-  previous=candidate;
- }
- forkliftPreviousT=to;forkliftPose(to);
- return false;
-}
-function animation(now){requestAnimationFrame(animation);const dt=Math.min(.06,(now-last)/1000);last=now;const d=defs[index],a=objs.actor,m=objs.machine,c=objs.chuck;if(state==='run'){time+=dt;const t=Math.min(time/(index===2?6:4),1);if(index===0){moveFallActor(t)}if(index===1){interpolate(a,baseline.actor,[49,70,4.0,180],t,'actor');if(c)c.rotation.z+=dt*12}if(index===2){if(m&&moveForkliftSafely(t)){impact();}}if(index===3){interpolate(a,baseline.actor,[29,75,4.0,180],t,'actor')}if(index===4){interpolate(a,baseline.actor,[54,58,4.0,180],t,'actor')}if(time>=4&&state==='run'&&index!==2)impact();if(index===2&&time>=6&&state==='run'){state='idle';msg('지게차가 작업자와 접촉하지 않아 사고를 발생시키지 않았습니다. 현재 배치를 확인해 주세요.');step('접촉 미발생 — 사고 효과 실행 안 함');}}
+function animation(now){requestAnimationFrame(animation);const dt=Math.min(.06,(now-last)/1000);last=now;const d=defs[index],a=objs.actor,m=objs.machine,c=objs.chuck;if(state==='run'){time+=dt;const t=Math.min(time/(index===2?6:4),1);if(index===0){moveFallActor(t)}if(index===1){interpolate(a,baseline.actor,[49,70,4.0,180],t,'actor');if(c)c.rotation.z+=dt*12}if(index===2){if(m){forkliftPose(t);if(t>=1&&state==='run')impact();}}if(index===3){interpolate(a,baseline.actor,[29,75,4.0,180],t,'actor')}if(index===4){interpolate(a,baseline.actor,[54,58,4.0,180],t,'actor')}if(time>=4&&state==='run'&&index!==2)impact();}
 else if(state==='impact'){time+=dt;const t=Math.min(time/1.9,1);if(index===0&&a){fallIntoHole(t)}if(index===1&&a){interpolate(a,[49,70,4.0,180],[44,70,4.0,215],Math.min(t,1),'actor');if(c)c.rotation.z+=dt*15}if(index===2&&m){/* 충돌 시점의 크기와 위치 고정, 작업자 관통 금지 */if(a&&t>.05){a.rotation.z=-Math.min((t-.05)*.24,.18)}}if(index===3){$('flash').style.opacity=(1-t)*.9;if(a)a.rotation.z=Math.sin(t*20)*.12}if(index===4){$('veil').style.opacity=t*.9;if(a)interpolate(a,[54,58,4.0,180],[54,62,3.6,180],t,'actor')}if(time>1.9){state='done';stage.classList.remove('shake');$('flash').style.opacity=0;step('사고 원인과 예방조치를 확인하세요')}}
 renderer.render(scene,cam)}
 function resize(){const r=stage.getBoundingClientRect(),aspect=r.width/r.height;renderer.setSize(r.width,r.height,false);cam.top=4.5;cam.bottom=-4.5;cam.left=-4.5*aspect;cam.right=4.5*aspect;cam.updateProjectionMatrix();apply()}
